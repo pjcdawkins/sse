@@ -201,9 +201,9 @@ func TestClientOnDisconnect(t *testing.T) {
 
 	c := NewClient(urlPath)
 
-	called := make(chan struct{})
-	c.OnDisconnect(func(client *Client) {
-		called <- struct{}{}
+	called := make(chan error)
+	c.OnDisconnectWithError(func(client *Client, err error) {
+		called <- err
 	})
 
 	go c.Subscribe("test", func(msg *Event) {})
@@ -211,7 +211,7 @@ func TestClientOnDisconnect(t *testing.T) {
 	time.Sleep(time.Second)
 	server.CloseClientConnections()
 
-	assert.Equal(t, struct{}{}, <-called)
+	assert.Error(t, io.EOF, <-called)
 }
 
 func TestClientOnConnect(t *testing.T) {

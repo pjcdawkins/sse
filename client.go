@@ -41,7 +41,7 @@ type ResponseValidator func(c *Client, resp *http.Response) error
 type Client struct {
 	Retry             time.Time
 	ReconnectStrategy backoff.BackOff
-	disconnectcb      ConnCallback
+	disconnectcb      func(*Client, error)
 	connectedcb       ConnCallback
 	subscribed        map[chan *Event]chan struct{}
 	Headers           map[string]string
@@ -215,7 +215,7 @@ func (c *Client) readLoop(reader *EventStreamReader, outCh chan *Event, erChan c
 			// run user specified disconnect function
 			if c.disconnectcb != nil {
 				c.Connected = false
-				c.disconnectcb(c)
+				c.disconnectcb(c, err)
 			}
 			erChan <- err
 			return
@@ -274,7 +274,13 @@ func (c *Client) Unsubscribe(ch chan *Event) {
 }
 
 // OnDisconnect specifies the function to run when the connection disconnects
+// Deprecated: use OnDisconnectWithError
 func (c *Client) OnDisconnect(fn ConnCallback) {
+	c.OnDisconnectWithError(func(client *Client, _ error) { fn(client) })
+}
+
+// OnDisconnectWithError specifies the function to run when the connection disconnects
+func (c *Client) OnDisconnectWithError(fn func(*Client, error)) {
 	c.disconnectcb = fn
 }
 
