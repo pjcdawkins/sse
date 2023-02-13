@@ -34,12 +34,11 @@ var mldata = `{
 	]
 }`
 
-func setup(empty bool) *Server {
+func setup(empty bool) {
 	// New Server
 	srv = newServer()
 	// Send almost-continuous string of events to the client
 	go publishMsgs(srv, empty, 100000000)
-	return srv
 }
 
 func setupMultiline() {
@@ -202,9 +201,9 @@ func TestClientOnDisconnect(t *testing.T) {
 
 	c := NewClient(urlPath)
 
-	called := make(chan struct{})
-	c.OnDisconnect(func(client *Client) {
-		called <- struct{}{}
+	called := make(chan error)
+	c.OnDisconnectWithError(func(client *Client, err error) {
+		called <- err
 	})
 
 	go c.Subscribe("test", func(msg *Event) {})
@@ -212,7 +211,7 @@ func TestClientOnDisconnect(t *testing.T) {
 	time.Sleep(time.Second)
 	server.CloseClientConnections()
 
-	assert.Equal(t, struct{}{}, <-called)
+	assert.Error(t, io.EOF, <-called)
 }
 
 func TestClientOnConnect(t *testing.T) {
@@ -259,7 +258,7 @@ func TestClientChanReconnect(t *testing.T) {
 }
 
 func TestClientChanReconnectOnEOF(t *testing.T) {
-	srv := setup(false)
+	setup(false)
 	defer cleanup()
 	streamID := "test"
 
