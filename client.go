@@ -97,7 +97,9 @@ func (c *Client) SubscribeWithContext(ctx context.Context, stream string, handle
 		defer resp.Body.Close()
 
 		// Successful connection: reset the backoff time.
-		c.ReconnectStrategy.Reset()
+		if c.ReconnectStrategy != nil {
+			c.ReconnectStrategy.Reset()
+		}
 
 		reader := NewEventStreamReader(resp.Body, c.maxBufferSize)
 		eventChan, errorChan := c.startReadLoop(reader)
